@@ -1,0 +1,46 @@
+services:
+
+  # ── One-shot init: create tables + run demo ───────────────────────────────
+
+  init:
+    build: .
+    networks:
+      - infra
+    environment:
+      POSTGRES_URL: postgresql+asyncpg://postgres:postgres@ml-postgres:5432/ml_platform
+      MINIO_ENDPOINT: ml-minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: lineage-snapshots
+    command: python scripts/docker_init.py
+    volumes:
+      - .:/app
+
+  # ── Streamlit UI (port 8502) ──────────────────────────────────────────────
+
+  ui:
+    build: .
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    networks:
+      - infra
+      - default
+    environment:
+      POSTGRES_URL: postgresql+asyncpg://postgres:postgres@ml-postgres:5432/ml_platform
+      MINIO_ENDPOINT: ml-minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: lineage-snapshots
+    ports:
+      - "8502:8502"
+    command: streamlit run ui/app.py --server.port 8502 --server.address 0.0.0.0
+    volumes:
+      - .:/app
+
+networks:
+  infra:
+    external: true
+    name: ml-platform-infra_default
+  default:
+    driver: bridge

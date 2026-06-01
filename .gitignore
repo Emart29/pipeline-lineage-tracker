@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# ML artifacts
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.pth
+mlruns/
+mlflow.db
+mlflow.db-shm
+mlflow.db-wal
+
+# Data files
+*.csv
+*.parquet
+*.feather
+*.arrow
+examples/heart_disease/data/
+examples/heart_disease/models/
+examples/heart_disease/*.html
+
+# Logs
+*.log
+*.out.log
+*.err.log
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
