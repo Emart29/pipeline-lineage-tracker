@@ -1,5 +1,5 @@
 """
-End-to-end demo: heart disease dataset → versioning → lineage → impact analysis.
+End-to-end demo: heart disease dataset -> versioning -> lineage -> impact analysis.
 Run: python examples/heart_disease/demo.py
 """
 import asyncio
@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler
 
 from core.dataset import DatasetTracker
 from core.lineage import LineageGraph
-from core.pipeline import PipelineTracker, tracked_run
+from core.pipeline import PipelineTracker
 from db.base import AsyncSessionLocal, create_all_tables
 from store.blob import BlobStore
 from store.metadata import MetadataStore
@@ -32,13 +32,14 @@ CLEVELAND_COLS = [
     "restecg", "thalach", "exang", "oldpeak", "slope", "ca", "thal", "target",
 ]
 
+SEP = "-" * 60
+
 
 def _download_heart_csv() -> Path:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     if not DATA_PATH.exists():
         print("  Downloading heart disease dataset from UCI...")
         urllib.request.urlretrieve(UCI_URL, DATA_PATH)
-        # Clean up: replace '?' with NaN, drop rows, set numeric
         df = pd.read_csv(DATA_PATH, names=CLEVELAND_COLS, na_values="?")
         df.dropna(inplace=True)
         df["target"] = (df["target"] > 0).astype(int)
@@ -56,8 +57,8 @@ async def run_demo():
         pipeline_tracker = PipelineTracker(meta)
         lg = LineageGraph(meta)
 
-        # ── Step 1: Track raw dataset ─────────────────────────────────────────
-        print("\n── Step 1: Track raw dataset ─────────────────────────────────")
+        # Step 1: Track raw dataset
+        print(f"\n[1/8] Track raw dataset\n{SEP}")
         csv_path = _download_heart_csv()
         raw_version = await dataset_tracker.track_file(
             "heart_raw",
@@ -66,11 +67,11 @@ async def run_demo():
             description="UCI Cleveland Heart Disease dataset (303 patients)",
             tags=["raw", "medical", "heart"],
         )
-        print(f"  ✓ heart_raw tracked as version {raw_version.version}, "
+        print(f"  OK  heart_raw tracked as version {raw_version.version}, "
               f"hash {raw_version.content_hash[:8]}, {raw_version.row_count} rows")
 
-        # ── Step 2: Feature engineering pipeline run ──────────────────────────
-        print("\n── Step 2: Feature engineering pipeline run ──────────────────")
+        # Step 2: Feature engineering pipeline run
+        print(f"\n[2/8] Feature engineering pipeline run\n{SEP}")
         df_raw = pd.read_csv(csv_path)
 
         fe_run = await pipeline_tracker.start_run("feature_engineering", {"n_features": 3})
@@ -100,11 +101,11 @@ async def run_demo():
             fe_run.id,
             metrics={"n_features": 3, "n_rows": len(df_features)},
         )
-        print(f"  ✓ Feature engineering run recorded, 3 features computed, "
+        print(f"  OK  Feature engineering run recorded, 3 features computed, "
               f"heart_features v{features_version.version}")
 
-        # ── Step 3: Train a model ─────────────────────────────────────────────
-        print("\n── Step 3: Train a model ────────────────────────────────────")
+        # Step 3: Train a model
+        print(f"\n[3/8] Train a model\n{SEP}")
         feature_cols = ["age_normalized", "cholesterol_risk", "composite_risk"]
         X = df_features[feature_cols].values
         y = df_features["target"].values
@@ -131,9 +132,6 @@ async def run_demo():
         )
         await pipeline_tracker.link_input(training_run.id, features_version)
 
-        # Save model to MinIO
-        import io
-        import joblib
         from integrations.sklearn import track_sklearn_model
 
         model_artifact = await track_sklearn_model(
@@ -149,12 +147,12 @@ async def run_demo():
 
         await pipeline_tracker.link_model(training_run.id, model_artifact)
         await pipeline_tracker.finish_run(training_run.id, metrics=metrics)
-        print(f"  ✓ Model trained — accuracy={metrics['accuracy']:.3f}, "
+        print(f"  OK  Model trained -- accuracy={metrics['accuracy']:.3f}, "
               f"f1={metrics['f1']:.3f}, roc_auc={metrics['roc_auc']:.3f}")
-        print(f"  ✓ Artifact saved: {model_artifact.storage_path}")
+        print(f"  OK  Artifact saved: {model_artifact.storage_path}")
 
-        # ── Step 4: Log predictions ───────────────────────────────────────────
-        print("\n── Step 4: Log predictions ──────────────────────────────────")
+        # Step 4: Log predictions
+        print(f"\n[4/8] Log predictions\n{SEP}")
         sample = X_test_scaled[:5]
         preds = clf.predict_proba(sample)[:, 1]
         first_pred_id = None
@@ -172,7 +170,6 @@ async def run_demo():
                 prediction=float(prob),
                 dataset_version_id=features_version.id,
             )
-            # Edge: model → prediction
             await meta.add_edge(
                 source_id=model_artifact.id,
                 source_type="model",
@@ -182,11 +179,12 @@ async def run_demo():
             )
             if first_pred_id is None:
                 first_pred_id = pred_log.id
+                print(f"  First prediction ID: {pred_log.id}")
 
-        print(f"  ✓ 5 predictions logged")
+        print(f"  OK  5 predictions logged")
 
-        # ── Step 5: Dataset change — new version ──────────────────────────────
-        print("\n── Step 5: Simulate dataset change (new version) ────────────")
+        # Step 5: Dataset change — new version
+        print(f"\n[5/8] Simulate dataset change (new version)\n{SEP}")
         df_v2 = df_raw.copy()
         df_v2["bmi_proxy"] = df_v2["age"] * 0.3 + df_v2["chol"] * 0.01
         df_v2.iloc[:5, df_v2.columns.get_loc("age")] += 1
@@ -200,39 +198,39 @@ async def run_demo():
             tags=["raw", "medical", "heart", "v2"],
         )
         diff = await dataset_tracker.diff("heart_raw", 1, raw_v2.version)
-        print(f"  ✓ Dataset v{raw_v2.version} tracked")
-        print(f"    Hash changed: {diff['hash_changed']}")
+        print(f"  OK  Dataset v{raw_v2.version} tracked")
+        print(f"      Hash changed: {diff['hash_changed']}")
         sc = diff["schema_changes"]
         if sc["added"]:
-            print(f"    Added columns: {list(sc['added'].keys())}")
-        print(f"    Row count delta: {diff['row_count_delta']:+d}")
+            print(f"      Added columns: {list(sc['added'].keys())}")
+        print(f"      Row count delta: {diff['row_count_delta']:+d}")
 
-        # ── Step 6: Impact analysis ───────────────────────────────────────────
-        print("\n── Step 6: Impact analysis ──────────────────────────────────")
+        # Step 6: Impact analysis
+        print(f"\n[6/8] Impact analysis\n{SEP}")
         impact = await lg.impact_analysis("heart_raw", version=1)
         print(f"  Affected pipeline runs: {len(impact['affected_pipeline_runs'])}")
         print(f"  Affected models:        {len(impact['affected_models'])}")
         print(f"  Affected predictions:   {impact['affected_predictions_count']}")
         print(f"  Risk level:             {impact['risk_level'].upper()}")
-        print("  ✓ Impact analysis complete")
+        print("  OK  Impact analysis complete")
 
-        # ── Step 7: Trace a prediction ────────────────────────────────────────
-        print("\n── Step 7: Trace prediction lineage ────────────────────────")
+        # Step 7: Trace a prediction
+        print(f"\n[7/8] Trace prediction lineage\n{SEP}")
         if first_pred_id:
             trace = await lg.trace_upstream(str(first_pred_id), "prediction")
-            print(f"  Full ancestry chain ({trace['depth']} hops):")
+            print(f"  Ancestry chain ({trace['depth']} hops):")
             for node in trace["path"]:
-                print(f"    {node}")
-            print(f"  ✓ Full lineage traced: {trace['depth']} hops from raw data to prediction")
+                print(f"    -> {node}")
+            print(f"  OK  Full lineage traced: {trace['depth']} hops from raw data to prediction")
 
-        # ── Step 8: Export DAG ────────────────────────────────────────────────
-        print("\n── Step 8: Export interactive DAG ──────────────────────────")
+        # Step 8: Export DAG
+        print(f"\n[8/8] Export interactive DAG\n{SEP}")
         G = await lg.build_graph()
         html = await lg.to_pyvis_html(G)
         out_path = Path(__file__).parent / "lineage.html"
         out_path.write_text(html, encoding="utf-8")
-        print(f"  ✓ Interactive DAG saved to {out_path}")
-        print(f"    ({G.number_of_nodes()} nodes, {G.number_of_edges()} edges)")
+        print(f"  OK  Interactive DAG saved to {out_path}")
+        print(f"      ({G.number_of_nodes()} nodes, {G.number_of_edges()} edges)")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,12 @@
 import asyncio
+import sys
 import webbrowser
 from pathlib import Path
+
+# Ensure project root is on sys.path when running as installed CLI
+_PROJECT_ROOT = Path(__file__).parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 import click
 from rich.console import Console

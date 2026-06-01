@@ -11,8 +11,8 @@ requires-python = ">=3.10"
 license = {text = "MIT"}
 
 [project.scripts]
-lineage = "cli.main:cli"
+lineage = "lineage_cli.main:cli"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["core*", "store*", "integrations*", "cli*", "ui*", "db*"]
+include = ["core*", "store*", "integrations*", "lineage_cli*", "ui*", "db*"]
