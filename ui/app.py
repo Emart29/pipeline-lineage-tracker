@@ -1,15 +1,14 @@
 import asyncio
 import sys
-import os
+from pathlib import Path
 
-# Ensure project root is in path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 
-from db.base import AsyncSessionLocal, create_all_tables
+from db.base import AsyncSessionLocal
 from store.metadata import MetadataStore
 from store.blob import BlobStore
 from core.dataset import DatasetTracker
@@ -17,16 +16,7 @@ from core.lineage import LineageGraph
 
 
 def run_async(coro):
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return loop.run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 st.set_page_config(
@@ -78,7 +68,7 @@ if page == "Dataset Versions":
                 "Description": v.description or "",
             })
         df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
 
         # Schema expander
         for v in versions:
@@ -87,7 +77,7 @@ if page == "Dataset Versions":
                 if schema:
                     st.dataframe(
                         pd.DataFrame([{"Column": k, "Type": val} for k, val in schema.items()]),
-                        use_container_width=True,
+                        width="stretch",
                     )
                 else:
                     st.write("No schema info available.")
@@ -154,7 +144,7 @@ elif page == "Pipeline Runs":
                 "Started": r.started_at.strftime("%Y-%m-%d %H:%M"),
             })
         df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
 
         for r in runs:
             with st.expander(f"Run #{r.run_number} — {r.name}"):
