@@ -17,7 +17,7 @@ async def main():
 
     print("\n[1/3] Creating database tables...")
     await create_all_tables()
-    print("  ✓ Tables created")
+    print("  OK Tables created")
 
     print("\n[2/3] Running heart disease demo...")
     # Import and run the demo
