@@ -61,6 +61,26 @@ Raw Data (CSV, DB, Kafka)
                   └── Page 4: Impact Analysis
 ```
 
+## Screenshots
+
+### Lineage DAG — interactive graph, colour-coded by node type
+
+![Lineage DAG](docs/3.png)
+
+### Impact Analysis — risk level badge, affected models, downstream subgraph
+
+![Impact Analysis](docs/4.png)
+
+### Dataset Versions — version history, schema diff, added columns highlighted
+
+![Dataset Versions](docs/1.png)
+
+### Pipeline Runs — status badges, git commit, parameters and metrics
+
+![Pipeline Runs](docs/2.png)
+
+---
+
 ## Services
 
 | Service | URL | Description |
