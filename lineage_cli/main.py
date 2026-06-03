@@ -1,6 +1,10 @@
 ﻿import asyncio
+import sys
 import webbrowser
 from pathlib import Path
+
+# Ensure project root is on sys.path when running as installed entry point
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import click
 from rich.console import Console
