@@ -61,6 +61,10 @@ desktop.ini
 # Jupyter
 .ipynb_checkpoints/
 
+# Generated output
+test_lineage.html
+lineage.html
+
 # SQLite
 *.db
 *.db-shm

@@ -4,8 +4,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import base64
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 
 from db.base import AsyncSessionLocal
@@ -195,7 +195,7 @@ elif page == "Lineage DAG":
     col3.metric("Node Types", len(show_types))
     col4.metric("Graph", "Live")
 
-    components.html(html, height=620, scrolling=False)
+    st.iframe("data:text/html;base64," + base64.b64encode(html.encode()).decode(), height=620)
 
     with st.sidebar:
         st.subheader("Trace Upstream")
@@ -274,4 +274,4 @@ elif page == "Impact Analysis":
 
         if subgraph_html:
             st.subheader("Downstream Lineage")
-            components.html(subgraph_html, height=400, scrolling=False)
+            st.iframe("data:text/html;base64," + base64.b64encode(subgraph_html.encode()).decode(), height=400)
